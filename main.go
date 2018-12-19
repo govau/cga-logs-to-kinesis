@@ -121,7 +121,8 @@ type bpCallback struct {
 }
 
 func (b *bpCallback) Printf(fmt string, args ...interface{}) {
-	log.Printf(fmt, args...)
+	// uncomment for debugging, but leave off in prod else we'll get into a log spiral
+	//log.Printf(fmt, args...)
 }
 
 func (b *bpCallback) Receive(sb batchproducer.StatsBatch) {
