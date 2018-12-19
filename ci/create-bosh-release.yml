@@ -14,3 +14,4 @@ params:
   access_key_id:
   secret_access_key:
   bosh_release_name:
+  bosh_repo_name:

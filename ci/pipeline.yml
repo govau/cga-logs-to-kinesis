@@ -61,6 +61,7 @@ jobs:
     file: git/ci/create-bosh-release.yml
     params:
       bosh_release_name: logs-to-kinesis
+      bosh_repo_name: cga-logs-to-kinesis
       access_key_id: ((boshrelease_s3_bucket_access_key_id))
       secret_access_key: ((boshrelease_s3_bucket_secret_access_key))
 

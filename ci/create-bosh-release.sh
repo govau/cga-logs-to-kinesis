@@ -5,7 +5,8 @@ set -x
 
 VERSION=$(cat version/number)
 RELEASE_ROOT="$PWD/github-release-info"
-RELEASE_NAME=${bosh_release_name}
+RELEASE_NAME="${bosh_release_name}"
+REPO_NAME="${bosh_repo_name}"
 
 cp -r ./git/. boshrelease-output
 
@@ -50,7 +51,7 @@ releases:
 - name: $RELEASE_NAME
   version: $VERSION
   sha1: $RELEASE_SHA1
-  url: https://github.com/govau/${RELEASE_NAME}/releases/download/v${VERSION}/${RELEASE_NAME}-${VERSION}.tgz
+  url: https://github.com/govau/${REPO_NAME}/releases/download/v${VERSION}/${RELEASE_NAME}-${VERSION}.tgz
 \`\`\`
 EOF
 
