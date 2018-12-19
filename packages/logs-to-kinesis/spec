@@ -1,0 +1,8 @@
+---
+name: logs-to-kinesis
+
+dependencies:
+- golang-1.11-linux
+
+files:
+- logs-to-kinesis/**/*.go

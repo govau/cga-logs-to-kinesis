@@ -1,0 +1,6 @@
+
+check process logs-to-kinesis
+  with pidfile /var/vcap/sys/run/logs-to-kinesis/pid
+  start program "/var/vcap/jobs/logs-to-kinesis/bin/ctl start"
+  stop program "/var/vcap/jobs/logs-to-kinesis/bin/ctl stop"
+  group root

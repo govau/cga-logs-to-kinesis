@@ -1,0 +1,33 @@
+---
+name: logs-to-kinesis
+
+templates:
+  ctl.erb: bin/ctl
+
+packages:
+- logs-to-kinesis
+
+properties:
+  kinesis.datastream:
+    description: Data stream name
+    default: ""
+    example: foo-stream
+
+  kinesis.region:
+    description: AWS Region
+    default: ""
+    example: ap-southeast-2
+
+  watch.files:
+    description: List of files to watch
+    default: []
+    example:
+    - /var/log/messages
+    - /var/log/secure
+
+  watch.directories:
+    description: List of files to watch
+    default: []
+    example:
+    - /var/log/**/.log
+    - /var/vcap/sys/log/**/*.log
