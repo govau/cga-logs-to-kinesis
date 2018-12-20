@@ -125,6 +125,9 @@ type KinesisOptions struct {
 
 	// Instance is stamped into metrics
 	Instance string
+
+	// Verbose
+	Verbose bool
 }
 
 type bpCallback struct {
@@ -132,8 +135,10 @@ type bpCallback struct {
 }
 
 func (b *bpCallback) Printf(fmt string, args ...interface{}) {
-	// uncomment for debugging, but leave off in prod else we'll get into a log spiral
-	//log.Printf(fmt, args...)
+	// enable for debugging, but leave off in prod else we'll get into a log spiral
+	if b.options.Verbose {
+		log.Printf(fmt, args...)
+	}
 }
 
 func (b *bpCallback) Receive(sb batchproducer.StatsBatch) {
@@ -368,6 +373,7 @@ func run() error {
 		AWSAccessKey:    os.Getenv("AWS_ACCESS_KEY_ID"),
 		AWSAccessSecret: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Instance:        os.Getenv("INSTANCE"),
+		Verbose:         os.Getenv("DEBUG") == "1",
 	})
 	if err != nil {
 		return err
