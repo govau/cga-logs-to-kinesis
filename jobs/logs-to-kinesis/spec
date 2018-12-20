@@ -23,6 +23,10 @@ properties:
     default: ""
     example: arn:::::xxxxx
 
+  kinesis.session:
+    description: AWS IAM session name, used if IAM role is assumed
+    default: "kinesis"
+
   watch.files:
     description: List of files to watch
     default: []

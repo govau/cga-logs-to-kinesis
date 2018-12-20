@@ -72,7 +72,7 @@ func NewKinesisProducer(options KinesisOptions) (batchproducer.Producer, error) 
 
 	// assume role if needed
 	if options.AWSRole != "" {
-		kinAuth, err = kinesis.NewAuthWithAssumedRole(options.AWSRole, options.AWSRegion, kinAuth)
+		kinAuth, err = kinesis.NewAuthWithAssumedRole(options.AWSRole, options.AWSSessionName, options.AWSRegion, kinAuth)
 		if err != nil {
 			return nil, err
 		}
@@ -113,6 +113,9 @@ type KinesisOptions struct {
 
 	// AWSRole optional role to assume
 	AWSRole string
+
+	//AWSSessionName needed if assuming role
+	AWSSessionName string
 
 	// AWSStreamName which stream to write to
 	AWSStreamName string
@@ -373,6 +376,7 @@ func run() error {
 		AWSStreamName:   os.Getenv("AWS_KINESIS_DATA_STREAM"),
 		AWSRegion:       os.Getenv("AWS_REGION"),
 		AWSRole:         os.Getenv("AWS_ROLE"),
+		AWSSessionName:  os.Getenv("AWS_SESSION_NAME"),
 		AWSAccessKey:    os.Getenv("AWS_ACCESS_KEY_ID"),
 		AWSAccessSecret: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Instance:        os.Getenv("INSTANCE"),
