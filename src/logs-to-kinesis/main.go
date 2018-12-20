@@ -60,7 +60,7 @@ type LogWatcher struct {
 // NewKinesisProducer creates a new producer that pushes to Kinesis
 func NewKinesisProducer(options KinesisOptions) (batchproducer.Producer, error) {
 	var err error
-	var kinAuth *kinesis.AuthCredentials
+	var kinAuth kinesis.Auth
 	if options.AWSAccessKey == "" {
 		kinAuth, err = kinesis.NewAuthFromMetadata()
 		if err != nil {
@@ -68,6 +68,14 @@ func NewKinesisProducer(options KinesisOptions) (batchproducer.Producer, error) 
 		}
 	} else {
 		kinAuth = kinesis.NewAuth(options.AWSAccessKey, options.AWSAccessSecret, "")
+	}
+
+	// assume role if needed
+	if options.AWSRole != "" {
+		kinAuth, err = kinesis.NewAuthWithAssumedRole(options.AWSRole, options.AWSRegion, kinAuth)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	bpCB := &bpCallback{
@@ -102,6 +110,9 @@ type LogWatchOptions struct {
 type KinesisOptions struct {
 	// AWSRegion where the stream is
 	AWSRegion string
+
+	// AWSRole optional role to assume
+	AWSRole string
 
 	// AWSStreamName which stream to write to
 	AWSStreamName string
@@ -353,6 +364,7 @@ func run() error {
 	kp, err := NewKinesisProducer(KinesisOptions{
 		AWSStreamName:   os.Getenv("AWS_KINESIS_DATA_STREAM"),
 		AWSRegion:       os.Getenv("AWS_REGION"),
+		AWSRole:         os.Getenv("AWS_ROLE"),
 		AWSAccessKey:    os.Getenv("AWS_ACCESS_KEY_ID"),
 		AWSAccessSecret: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Instance:        os.Getenv("INSTANCE"),

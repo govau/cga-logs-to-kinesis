@@ -2,12 +2,15 @@ package kinesis
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,42 +24,39 @@ const (
 	AWSMetadataServer = "169.254.169.254"
 	AWSIAMCredsPath   = "/latest/meta-data/iam/security-credentials"
 	AWSIAMCredsURL    = "http://" + AWSMetadataServer + "/" + AWSIAMCredsPath
+
+	AWSSecurityTokenHeader = "X-Amz-Security-Token"
 )
 
 // Auth interface for authentication credentials and information
 type Auth interface {
-	GetToken() string
-	GetExpiration() time.Time
-	GetSecretKey() string
-	GetAccessKey() string
-	HasExpiration() bool
-	Renew() error
-	Sign(*Service, time.Time) []byte
+	KeyForSigning(now time.Time) (*SigningKey, error)
 }
 
-// AuthCredentials holds the AWS credentials and metadata
-type AuthCredentials struct {
-	// accessKey, secretKey are the standard AWS auth credentials
-	accessKey, secretKey, token string
+type SigningKey struct {
+	AccessKeyId     string
+	SecretAccessKey string
+	SessionToken    string
 
-	// expiry indicates the time at which these credentials expire. If this is set
-	// to anything other than the zero value, indicates that the credentials are
-	// temporary (and probably fetched from an IAM role from the metadata server)
-	expiry time.Time
+	Expiration time.Time
+}
+
+func (sc *SigningKey) KeyForSigning(now time.Time) (*SigningKey, error) {
+	return sc, nil
 }
 
 // NewAuth creates a *AuthCredentials struct that adheres to the Auth interface to
 // dynamically retrieve AWS credentials
-func NewAuth(accessKey, secretKey, token string) *AuthCredentials {
-	return &AuthCredentials{
-		accessKey: accessKey,
-		secretKey: secretKey,
-		token:     token,
+func NewAuth(accessKey, secretKey, token string) Auth {
+	return &SigningKey{
+		AccessKeyId:     accessKey,
+		SecretAccessKey: secretKey,
+		SessionToken:    token,
 	}
 }
 
 // NewAuthFromEnv retrieves auth credentials from environment vars
-func NewAuthFromEnv() (*AuthCredentials, error) {
+func NewAuthFromEnv() (Auth, error) {
 	accessKey := os.Getenv(AccessEnvKey)
 	if accessKey == "" {
 		accessKey = os.Getenv(AccessEnvKeyId)
@@ -82,77 +82,71 @@ func NewAuthFromEnv() (*AuthCredentials, error) {
 	return NewAuth(accessKey, secretKey, token), nil
 }
 
-// NewAuthFromMetadata retrieves auth credentials from the metadata
-// server. If an IAM role is associated with the instance we are running on, the
-// metadata server will expose credentials for that role under a known endpoint.
-//
-// TODO: specify custom network (connect, read) timeouts, else this will block
-// for the default timeout durations.
-func NewAuthFromMetadata() (*AuthCredentials, error) {
-	auth := &AuthCredentials{}
-	if err := auth.Renew(); err != nil {
+type cachedMutexedAuth struct {
+	mu         sync.Mutex
+	current    *SigningKey
+	underlying Auth
+}
+
+func newCachedMutexedWarmedUpAuth(underlying Auth) (Auth, error) {
+	rv := &cachedMutexedAuth{
+		underlying: underlying,
+	}
+	_, err := rv.KeyForSigning(time.Now())
+	if err != nil {
 		return nil, err
 	}
-	return auth, nil
+	return rv, nil
 }
 
-// HasExpiration returns true if the expiration time is non-zero and false otherwise
-func (a *AuthCredentials) HasExpiration() bool {
-	return !a.expiry.IsZero()
+func (cmuxa *cachedMutexedAuth) KeyForSigning(now time.Time) (*SigningKey, error) {
+	cmuxa.mu.Lock()
+	defer cmuxa.mu.Unlock()
+
+	if cmuxa.current == nil || !cmuxa.current.Expiration.After(now) {
+		newSK, err := cmuxa.underlying.KeyForSigning(now)
+		if err != nil {
+			return nil, err
+		}
+		cmuxa.current = newSK
+	}
+
+	return cmuxa.current, nil
 }
 
-// GetExpiration retrieves the current expiration time
-func (a *AuthCredentials) GetExpiration() time.Time {
-	return a.expiry
-}
+type metadataCreds struct{}
 
-// GetToken returns the token
-func (a *AuthCredentials) GetToken() string {
-	return a.token
-}
-
-// GetSecretKey returns the secret key
-func (a *AuthCredentials) GetSecretKey() string {
-	return a.secretKey
-}
-
-// GetAccessKey returns the access key
-func (a *AuthCredentials) GetAccessKey() string {
-	return a.accessKey
-}
-
-// Renew retrieves a new token and mutates it on an instance of the Auth struct
-func (a *AuthCredentials) Renew() error {
+func (mc *metadataCreds) KeyForSigning(now time.Time) (*SigningKey, error) {
 	role, err := retrieveIAMRole()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	data, err := retrieveAWSCredentials(role)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Ignore the error, it just means we won't be able to refresh the
 	// credentials when they expire.
 	expiry, _ := time.Parse(time.RFC3339, data["Expiration"])
 
-	a.expiry = expiry
-	a.accessKey = data["AccessKeyId"]
-	a.secretKey = data["SecretAccessKey"]
-	a.token = data["Token"]
-	return nil
+	return &SigningKey{
+		AccessKeyId:     data["AccessKeyId"],
+		SecretAccessKey: data["SecretAccessKey"],
+		SessionToken:    data["Token"],
+		Expiration:      expiry,
+	}, nil
 }
 
-// Sign API request by
-// http://docs.amazonwebservices.com/general/latest/gr/signature-version-4.html
-
-func (a *AuthCredentials) Sign(s *Service, t time.Time) []byte {
-	h := ghmac([]byte("AWS4"+a.GetSecretKey()), []byte(t.Format(iSO8601BasicFormatShort)))
-	h = ghmac(h, []byte(s.Region))
-	h = ghmac(h, []byte(s.Name))
-	h = ghmac(h, []byte(AWS4_URL))
-	return h
+// NewAuthFromMetadata retrieves auth credentials from the metadata
+// server. If an IAM role is associated with the instance we are running on, the
+// metadata server will expose credentials for that role under a known endpoint.
+//
+// TODO: specify custom network (connect, read) timeouts, else this will block
+// for the default timeout durations.
+func NewAuthFromMetadata() (Auth, error) {
+	return newCachedMutexedWarmedUpAuth(&metadataCreds{})
 }
 
 func retrieveAWSCredentials(role string) (map[string]string, error) {
@@ -199,4 +193,65 @@ func retrieveIAMRole() (string, error) {
 	}
 
 	return role, nil
+}
+
+type stsCreds struct {
+	RoleARN   string
+	Region    string
+	OtherAuth Auth
+}
+
+func (sts *stsCreds) KeyForSigning(now time.Time) (*SigningKey, error) {
+	r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://sts.%s.amazonaws.com/?%s", sts.Region, (url.Values{
+		"Version":         []string{"2011-06-15"},
+		"Action":          []string{"AssumeRole"},
+		"RoleSessionName": []string{"kinesis"},
+		"RoleArn":         []string{sts.RoleARN},
+	}).Encode()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = (&Service{
+		Name:   "sts",
+		Region: sts.Region,
+	}).Sign(sts.OtherAuth, r)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("bad status code")
+	}
+
+	var wrapper struct {
+		AssumeRoleResult struct {
+			Credentials *SigningKey
+		}
+	}
+	err = xml.NewDecoder(resp.Body).Decode(&wrapper)
+	if err != nil {
+		return nil, err
+	}
+
+	if wrapper.AssumeRoleResult.Credentials == nil {
+		return nil, errors.New("bad data back")
+	}
+
+	return wrapper.AssumeRoleResult.Credentials, nil
+}
+
+// NewAuthWithAssumedRole will call STS in a given region to assume a role
+func NewAuthWithAssumedRole(roleArn, region string, otherAuth Auth) (Auth, error) {
+	return newCachedMutexedWarmedUpAuth(&stsCreds{
+		RoleARN:   roleArn,
+		Region:    region,
+		OtherAuth: otherAuth,
+	})
 }

@@ -16,6 +16,7 @@ case $1 in
 
     exec env AWS_KINESIS_DATA_STREAM="<%= p("kinesis.datastream") %>" \
         AWS_REGION="<%= p("kinesis.region") %>" \
+        AWS_ROLE="<%= p("kinesis.role") %>" \
         INSTANCE="$(hostname -A)" \
         FILES_TO_WATCH="<%= p("watch.files").join(":") %>" \
         DIRS_TO_WATCH="<%= p("watch.directories").join(":") %>" \

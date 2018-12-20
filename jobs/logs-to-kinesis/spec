@@ -18,6 +18,11 @@ properties:
     default: ""
     example: ap-southeast-2
 
+  kinesis.role:
+    description: AWS IAM role to assume with STS first - optional
+    default: ""
+    example: arn:::::xxxxx
+
   watch.files:
     description: List of files to watch
     default: []

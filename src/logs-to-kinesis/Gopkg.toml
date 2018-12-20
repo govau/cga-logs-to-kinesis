@@ -7,7 +7,8 @@
   version = "0.9.2"
 
 [[constraint]]
-  branch = "master"
+  branch = "sts"
+  source = "github.com/govau/go-kinesis"
   name = "github.com/sendgridlabs/go-kinesis"
 
 [prune]
