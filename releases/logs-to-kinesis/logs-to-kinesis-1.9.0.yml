@@ -1,0 +1,25 @@
+name: logs-to-kinesis
+version: 1.9.0
+commit_hash: 83b5b6e
+uncommitted_changes: false
+jobs:
+- name: logs-to-kinesis
+  version: a38aaa58d8f5888f9459bfa38d8bdc2583f159ca
+  fingerprint: a38aaa58d8f5888f9459bfa38d8bdc2583f159ca
+  sha1: 036a24861f51f5fcfea9ff94aa37e03e95ed8a96
+packages:
+- name: golang-1.11-linux
+  version: 1713e92cb48ac5a86a78bb8eba12d69cf05d13382411128a3bd7b748585d22ba
+  fingerprint: 1713e92cb48ac5a86a78bb8eba12d69cf05d13382411128a3bd7b748585d22ba
+  sha1: sha256:36421b78eeeae92b036f4b6097d57d4fd2e08742875ff051fcbdb5985bb4e975
+  dependencies: []
+- name: logs-to-kinesis
+  version: d50427cef5ce8ac1ac0388ec743e1422fa0839c2
+  fingerprint: d50427cef5ce8ac1ac0388ec743e1422fa0839c2
+  sha1: 3af6fe614281361032d1c3d04bfc454e3f2723e7
+  dependencies:
+  - golang-1.11-linux
+license:
+  version: dde9b70891c42768a0a5062f1e6beb21770e98ae
+  fingerprint: dde9b70891c42768a0a5062f1e6beb21770e98ae
+  sha1: 59a0eca184af83adaab0603cb00077045e505e74
