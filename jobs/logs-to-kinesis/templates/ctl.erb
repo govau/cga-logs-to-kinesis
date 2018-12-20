@@ -28,7 +28,11 @@ case $1 in
     ;;
 
   stop)
-    kill -9 `cat $PIDFILE`
+    PID=`cat $PIDFILE`
+    kill "$PID"
+    while $(kill -0 "$PID" 2>/dev/null); do
+      sleep 0.1
+    done
     rm -f $PIDFILE
 
     ;;
