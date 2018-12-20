@@ -7,6 +7,8 @@ builds:
     version: 1.4.0
   4b7ca6fa-8f0f-45be-73f8-d6ce1ff141e4:
     version: 1.5.0
+  8a1b39a8-6aff-498d-5387-ea0114aff764:
+    version: 1.6.0
   d0dbc29f-4240-424d-7eed-ec60441277cf:
     version: 1.1.0
 format-version: "2"
