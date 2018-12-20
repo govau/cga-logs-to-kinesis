@@ -356,16 +356,19 @@ func (*logProducer) Flush(time.Duration, bool) (int, int, error) {
 }
 
 func (*logProducer) Start() error {
-	log.Println("Starting...")
+	log.Println("Starting producer...")
 	return nil
 }
 
 func (*logProducer) Stop() error {
-	log.Println("Stopping...")
+	log.Println("Stopping producer...")
 	return nil
 }
 
 func run() error {
+	log.Println("starting app...")
+	defer log.Println("stopping app...")
+
 	kp, err := NewKinesisProducer(KinesisOptions{
 		AWSStreamName:   os.Getenv("AWS_KINESIS_DATA_STREAM"),
 		AWSRegion:       os.Getenv("AWS_REGION"),

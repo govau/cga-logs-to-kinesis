@@ -1,6 +1,7 @@
 package kinesis
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -207,7 +208,7 @@ func (sts *stsCreds) KeyForSigning(now time.Time) (*SigningKey, error) {
 		"Action":          []string{"AssumeRole"},
 		"RoleSessionName": []string{"kinesis"},
 		"RoleArn":         []string{sts.RoleARN},
-	}).Encode()), nil)
+	}).Encode()), bytes.NewReader([]byte{}))
 	if err != nil {
 		return nil, err
 	}

@@ -36,3 +36,7 @@ properties:
     example:
     - /var/log/**/.log
     - /var/vcap/sys/log/**/*.log
+
+  metrics.port:
+    description: Port to serve prometheus metrics on
+    default: 2632

@@ -105,14 +105,14 @@
 
 [[projects]]
   branch = "sts"
-  digest = "1:832179e78ba2a85f793718538be9445aa939045707cd5f4e643533c8fab51c11"
+  digest = "1:9727d838603be342f73a144b2288a9f1d6deb8495d9e116aad736c48344fb99e"
   name = "github.com/sendgridlabs/go-kinesis"
   packages = [
     ".",
     "batchproducer",
   ]
   pruneopts = "UT"
-  revision = "42b55994059223d2b15f16c59d91d48d4af5ef79"
+  revision = "49a2405b30cbf635b62e1cd7d41b5084c96c4f4e"
   source = "github.com/govau/go-kinesis"
 
 [solve-meta]
